@@ -1,2 +1,3 @@
 .vscode
 js_re
+*_test.go

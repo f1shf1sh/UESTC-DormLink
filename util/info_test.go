@@ -13,9 +13,9 @@ func TestInfo(t *testing.T) {
 	}{
 		{
 			info: InfoData{
-				Username: "202522900116@dx",
+				Username: "111111@dx",
 				Password: "12345",
-				IP:       "10.20.6.180",
+				IP:       "10.0.1.1",
 				ACID:     "3",
 				EncVer:   "srun_bx1",
 			},
