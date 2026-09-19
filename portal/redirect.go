@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"net/url"
@@ -22,6 +23,10 @@ var (
 
 // Redirect 发现门户和网络参数；登录页面只提供上下文，不承担认证。
 func Redirect(cfg *config.Config) error {
+	return redirect(context.Background(), cfg)
+}
+
+func redirect(ctx context.Context, cfg *config.Config) error {
 	address := strings.TrimSpace(cfg.PortalIP)
 	if !strings.Contains(address, "://") {
 		address = "http://" + address
@@ -30,7 +35,7 @@ func Redirect(cfg *config.Config) error {
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return fmt.Errorf("portal_ip 必须是门户 IP 或 HTTP(S) 地址")
 	}
-	body, finalURL, err := fetch(u.String(), cfg.UserAgent)
+	body, finalURL, err := fetch(ctx, u.String(), cfg.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -48,7 +53,7 @@ func Redirect(cfg *config.Config) error {
 		if err != nil {
 			return fmt.Errorf("门户 meta refresh 地址无效")
 		}
-		body, finalURL, err = fetch(next.String(), cfg.UserAgent)
+		body, finalURL, err = fetch(ctx, next.String(), cfg.UserAgent)
 		if err != nil {
 			return err
 		}
@@ -82,6 +87,7 @@ func Redirect(cfg *config.Config) error {
 	origin := finalURL.Scheme + "://" + finalURL.Host
 	cfg.ChallengeURL = origin + "/cgi-bin/get_challenge"
 	cfg.AuthURL = origin + "/cgi-bin/srun_portal"
+	cfg.StatusURL = origin + "/cgi-bin/rad_user_info"
 	cfg.ACID, cfg.OnlineIP = acid, ip
 	cfg.WlanACIP = query.Get("wlanacip")
 	return nil

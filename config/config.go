@@ -18,6 +18,7 @@ type Config struct {
 	OnlineIP     string // DHCP分配的主机ip
 	AuthURL      string // 登录请求 URL
 	ChallengeURL string // 获取 challenge URL
+	StatusURL    string // 已发现门户的在线状态接口
 	Token        string // 获取challenge
 	UserAgent    string // 模拟浏览器 UA
 }

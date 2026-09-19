@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +12,10 @@ import (
 )
 
 func Auth(cfg *config.Config) error {
+	return auth(context.Background(), cfg)
+}
+
+func auth(ctx context.Context, cfg *config.Config) error {
 	if cfg.Token == "" || cfg.ACID == "" || cfg.OnlineIP == "" {
 		return fmt.Errorf("认证缺少 challenge、ac_id 或客户端 IP")
 	}
@@ -49,6 +54,6 @@ func Auth(cfg *config.Config) error {
 		"double_stack": {"0"},
 		"_":            {timestamp},
 	}
-	_, err = getJSONP(cfg.AuthURL, params, cfg.UserAgent)
+	_, err = getJSONP(ctx, cfg.AuthURL, params, cfg.UserAgent)
 	return err
 }

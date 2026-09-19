@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"srun-auth/config"
@@ -8,6 +9,10 @@ import (
 )
 
 func GetChallenge(cfg *config.Config) error {
+	return getChallenge(context.Background(), cfg)
+}
+
+func getChallenge(ctx context.Context, cfg *config.Config) error {
 	cfg.Token = ""
 	timestamp := util.GetCurrentTimeMillis()
 	params := url.Values{
@@ -16,7 +21,7 @@ func GetChallenge(cfg *config.Config) error {
 		"ip":       {cfg.OnlineIP},
 		"_":        {timestamp},
 	}
-	response, err := getJSONP(cfg.ChallengeURL, params, cfg.UserAgent)
+	response, err := getJSONP(ctx, cfg.ChallengeURL, params, cfg.UserAgent)
 	if err != nil {
 		return err
 	}
