@@ -1,6 +1,6 @@
 # srun-auto-login
 
-电子科技大学 SRun 校园网认证工具，可在 Linux 路由器上运行。当前执行一次认证，自动重连尚未实现。
+电子科技大学 SRun 校园网认证工具，支持单次登录和掉线自动重连，可在 Linux 路由器上运行。
 
 ## 1. 确认路由器架构
 
@@ -46,26 +46,52 @@ CGO_ENABLED=0 GOOS=linux GOARCH=mipsle GOMIPS=softfloat \
   "username": "你的学号",
   "password": "你的校园网密码",
   "carrier": "dx",
-  "portal_ip": "1.1.1.1"
+  "portal_ip": "http://10.253.0.235/srun_portal_pc?ac_id=3"
 }
 ```
 
-`username` 不带运营商后缀；`carrier` 按实际登录页面填写，例如电信 `dx`、移动 `cmcc`，无需后缀时填空字符串。入口无法跳转到门户时，把 `portal_ip` 换成浏览器实际登录页的完整 URL，保留查询参数。
+`username` 不带运营商后缀；`carrier` 按实际登录页面填写，例如电信 `dx`、移动 `cmcc`，无需后缀时填空字符串。上面的网关和 `ac_id` 是示例，请按宿舍实际门户填写。
+
+自动重连需要实际门户地址，保留 `ac_id`，不要固定旧的 `wlanuserip`；不要用 `1.1.1.1` 等探测入口，因为已联网时它可能不再跳转到门户。
 
 在电脑上上传，将示例地址 `192.168.1.1` 替换为路由器地址：
 
 ```sh
-ssh root@192.168.1.1 'mkdir -p /root/srun-auto-login'
-ssh root@192.168.1.1 'cat > /root/srun-auto-login/srun-auto-login' < bin/srun-auto-login
-ssh root@192.168.1.1 'cat > /root/srun-auto-login/config.json' < config.json
+ssh root@192.168.1.1 'mkdir -p /etc/srun-auto-login'
+ssh root@192.168.1.1 'cat > /usr/bin/srun-auto-login && chmod +x /usr/bin/srun-auto-login' < bin/srun-auto-login
+ssh root@192.168.1.1 'cat > /etc/srun-auto-login/config.json' < config.json
 ```
 
 登录路由器后运行：
 
 ```sh
-cd /root/srun-auto-login
-chmod +x srun-auto-login
-./srun-auto-login
+# 单次认证
+srun-auto-login -config /etc/srun-auto-login/config.json
+
+# 持续监测，默认每轮检查完成后等待 30 秒
+srun-auto-login -watch -config /etc/srun-auto-login/config.json
 ```
 
-程序读取当前目录的 `config.json`，因此运行前需要先 `cd`。认证失败时输出错误并返回退出码 1；宿舍实际认证仍需现场验证。
+可用 `-interval 1m` 调整监测间隔。不指定 `-config` 时读取当前目录的 `config.json`。
+
+仅在门户明确返回离线时重连；请求失败或状态未知会等待下一轮。用户名/密码错误、账号锁定或要求修改密码时暂停尝试，修改配置后重启程序。按 Ctrl+C 可停止。
+
+## 4. OpenWrt 开机运行
+
+在电脑上传启动脚本：
+
+```sh
+ssh root@192.168.1.1 'cat > /etc/init.d/srun-auto-login && chmod +x /etc/init.d/srun-auto-login' < openwrt/srun-auto-login
+```
+
+然后在路由器执行：
+
+```sh
+/etc/init.d/srun-auto-login enable
+/etc/init.d/srun-auto-login start
+logread -e srun-auto-login
+```
+
+修改配置后执行 `/etc/init.d/srun-auto-login restart`。停止并取消开机启动分别使用 `stop` 和 `disable`。脚本由 OpenWrt procd 托管，无需另外添加后台循环或 cron。
+
+已通过模拟掉线测试及上述六种架构的交叉编译；宿舍实际认证与 OpenWrt 实机运行仍需现场验证。
