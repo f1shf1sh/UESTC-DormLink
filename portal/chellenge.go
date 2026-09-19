@@ -1,58 +1,35 @@
 package portal
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"srun-auth/config"
 	"srun-auth/util"
-	"strings"
 )
 
 func GetChallenge(cfg *config.Config) error {
-	timestamp_str := util.GetCurrentTimeMillis()
-	callback_name := "jQuery_" + timestamp_str
-
-	var username string
-	if cfg.Carrier != "" {
-		username = cfg.Username + "@" + cfg.Carrier
-	} else {
-		username = cfg.Username
+	cfg.Token = ""
+	timestamp := util.GetCurrentTimeMillis()
+	params := url.Values{
+		"callback": {"jQuery_" + timestamp},
+		"username": {cfg.LoginUsername()},
+		"ip":       {cfg.OnlineIP},
+		"_":        {timestamp},
 	}
-	params := &url.Values{}
-	params.Add("callback", callback_name)
-	params.Add("username", username)
-	params.Add("ip", cfg.OnlineIP)
-	params.Add("_", timestamp_str)
-
-	full_url := cfg.ChallengeURL + "?" + params.Encode()
-
-	resp, err := http.Get(full_url)
+	response, err := getJSONP(cfg.ChallengeURL, params, cfg.UserAgent)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
+	if response.Challenge == "" {
+		return fmt.Errorf("服务器未返回 challenge")
 	}
-
-	start := strings.Index(string(body), "(")
-	end := strings.LastIndex(string(body), ")")
-	if start == -1 || end == -1 || start >= end {
-		return fmt.Errorf("非法 JSONP 响应")
+	// 当前客户端登录本机网络，优先采用认证服务器观察到的地址。
+	if response.ClientIP != "" {
+		cfg.OnlineIP = response.ClientIP
 	}
-	jsonStr := body[start+1 : end]
-	// 解析为 map
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
-		return err
+	if cfg.OnlineIP == "" {
+		return fmt.Errorf("门户和 challenge 均未提供客户端 IP")
 	}
-
-	challenge, _ := data["challenge"].(string)
-	cfg.Token = challenge
-
+	cfg.Token = response.Challenge
 	return nil
 }

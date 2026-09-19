@@ -21,8 +21,8 @@ func TestHMD5(t *testing.T) {
 
 	for _, tt := range tests {
 		got := HMD5(tt.pwd, tt.salt)
-		if tt.want == got {
-			t.Logf("HMD5(%s, %s) = %s, want = %s\n", tt.pwd, tt.salt, got, tt.want)
+		if tt.want != got || len(got) != tt.want_len {
+			t.Errorf("HMD5 = %s, want = %s (length %d)", got, tt.want, tt.want_len)
 		}
 	}
 }
