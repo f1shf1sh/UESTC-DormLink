@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // Config 保存登录相关配置
@@ -23,8 +24,8 @@ type Config struct {
 
 // 默认值
 var defaultConfig = &Config{
-	PortalIP:     "172.25.249.64", // 固定门户 IP
-	AuthURL:      "http://10.253.0.235/cgi-bin/srun_portal_pc",
+	PortalIP:     "10.253.0.235", // 宿舍 SRun 门户；实际入口优先使用 config.json
+	AuthURL:      "http://10.253.0.235/cgi-bin/srun_portal",
 	ChallengeURL: "http://10.253.0.235/cgi-bin/get_challenge",
 	UserAgent:    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0 Safari/537.36",
 }
@@ -43,6 +44,20 @@ func LoadConfig(path string) (*Config, error) {
 	if err := decoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("解析 JSON 配置失败: %v", err)
 	}
+	if strings.TrimSpace(cfg.Username) == "" || cfg.Password == "" {
+		return nil, fmt.Errorf("请在 config.json 中填写校园网 username 和 password")
+	}
+	if strings.TrimSpace(cfg.PortalIP) == "" {
+		return nil, fmt.Errorf("portal_ip 不能为空")
+	}
 
 	return &cfg, nil
+}
+
+// LoginUsername 返回协议各个阶段共同使用的完整用户名。
+func (cfg *Config) LoginUsername() string {
+	if cfg.Carrier == "" {
+		return cfg.Username
+	}
+	return cfg.Username + "@" + cfg.Carrier
 }
