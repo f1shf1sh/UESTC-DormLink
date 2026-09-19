@@ -109,7 +109,7 @@ func xencode(msg, key string) string {
 	var z, y, sum uint32
 	q := 6 + 52/(n+1)
 
-	delta := 0x9E3779B9
+	const delta = 0x9E3779B9
 
 	z = pwd[n]
 	for q > 0 {
