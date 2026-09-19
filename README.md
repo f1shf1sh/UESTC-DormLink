@@ -1,6 +1,6 @@
-# DormLink
+# UESTC DormLink
 
-面向 Linux 路由器的 SRun 校园网认证与自动重连工具。
+电子科技大学校园网自动认证与断线重连工具，支持 SRun 认证流程。
 
 ## 1. 确认路由器架构
 
