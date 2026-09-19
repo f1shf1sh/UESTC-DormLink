@@ -1,6 +1,6 @@
-# srun-auto-login
+# DormLink
 
-电子科技大学 SRun 校园网认证工具，支持单次登录和掉线自动重连，可在 Linux 路由器上运行。
+面向 Linux 路由器的 SRun 校园网认证与自动重连工具。
 
 ## 1. 确认路由器架构
 
