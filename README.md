@@ -4,7 +4,7 @@
 
 ## 1. 确认路由器架构
 
-在路由器上执行 `uname -m`。OpenWrt 还可查看 `cat /etc/openwrt_release` 中的 `DISTRIB_ARCH`。
+在路由器上执行 `uname -m`，结合固件的架构说明选择编译参数。
 
 | 路由器架构 | Go 编译参数 |
 |---|---|
@@ -15,7 +15,7 @@
 | x86_64 | `GOARCH=amd64` |
 | x86 32 位 | `GOARCH=386` |
 
-MIPS 不能只看 `uname -m`：OpenWrt 的 `mipsel_*` 对应 `mipsle`，`mips_*` 对应 `mips`。ARMv7 参数不适用于所有 32 位 ARM 设备。参数说明见 [Go ARM](https://go.dev/wiki/GoArm) 和 [Go MIPS](https://go.dev/wiki/GoMips)。
+MIPS 还需确认大小端，小端通常标为 `mipsel` 或 `mipsle`。ARMv7 参数不适用于所有 32 位 ARM 设备。参数说明见 [Go ARM](https://go.dev/wiki/GoArm) 和 [Go MIPS](https://go.dev/wiki/GoMips)。
 
 ## 2. 在电脑上编译
 
@@ -54,44 +54,21 @@ CGO_ENABLED=0 GOOS=linux GOARCH=mipsle GOMIPS=softfloat \
 
 自动重连需要实际门户地址，保留 `ac_id`，不要固定旧的 `wlanuserip`；不要用 `1.1.1.1` 等探测入口，因为已联网时它可能不再跳转到门户。
 
-在电脑上上传，将示例地址 `192.168.1.1` 替换为路由器地址：
-
-```sh
-ssh root@192.168.1.1 'mkdir -p /etc/srun-auto-login'
-ssh root@192.168.1.1 'cat > /usr/bin/srun-auto-login && chmod +x /usr/bin/srun-auto-login' < bin/srun-auto-login
-ssh root@192.168.1.1 'cat > /etc/srun-auto-login/config.json' < config.json
-```
-
-登录路由器后运行：
+将编译好的 `srun-auto-login` 和 `config.json` 上传到路由器上你选择的目录，进入该目录运行：
 
 ```sh
 # 单次认证
-srun-auto-login -config /etc/srun-auto-login/config.json
+chmod +x ./srun-auto-login
+./srun-auto-login
 
 # 持续监测，默认每轮检查完成后等待 30 秒
-srun-auto-login -watch -config /etc/srun-auto-login/config.json
+./srun-auto-login -watch
 ```
 
-可用 `-interval 1m` 调整监测间隔。不指定 `-config` 时读取当前目录的 `config.json`。
+可用 `-interval 1m` 调整监测间隔，或用 `-config /路径/config.json` 指定配置文件；默认读取当前目录的 `config.json`。
 
 仅在门户明确返回离线时重连；请求失败或状态未知会等待下一轮。用户名/密码错误、账号锁定或要求修改密码时暂停尝试，修改配置后重启程序。按 Ctrl+C 可停止。
 
-## 4. OpenWrt 开机运行
+程序以前台方式运行。后台运行、开机启动和进程托管由使用者自行配置。
 
-在电脑上传启动脚本：
-
-```sh
-ssh root@192.168.1.1 'cat > /etc/init.d/srun-auto-login && chmod +x /etc/init.d/srun-auto-login' < openwrt/srun-auto-login
-```
-
-然后在路由器执行：
-
-```sh
-/etc/init.d/srun-auto-login enable
-/etc/init.d/srun-auto-login start
-logread -e srun-auto-login
-```
-
-修改配置后执行 `/etc/init.d/srun-auto-login restart`。停止并取消开机启动分别使用 `stop` 和 `disable`。脚本由 OpenWrt procd 托管，无需另外添加后台循环或 cron。
-
-已通过模拟掉线测试及上述六种架构的交叉编译；宿舍实际认证与 OpenWrt 实机运行仍需现场验证。
+已通过模拟掉线测试及上述六种架构的交叉编译；宿舍实际认证与路由器实机运行仍需现场验证。
