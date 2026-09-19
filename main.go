@@ -2,39 +2,33 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"srun-auth/config"
 	"srun-auth/portal"
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "[-]", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	cfg, err := config.LoadConfig("./config.json")
 	if err != nil {
-		fmt.Println("加载配置失败: ", err)
-		return
+		return err
 	}
-	fmt.Println("[+] 配置加载成功")
-	fmt.Printf("Username: %s\nPassword: %s\n运营商: %s\n", cfg.Username, cfg.Password, cfg.Carrier)
-
-	err = portal.Redirect(cfg)
-	if err != nil {
-		fmt.Println("[-] 重定向失败: ", err)
-		return
+	if err := portal.Redirect(cfg); err != nil {
+		return fmt.Errorf("发现认证门户失败: %w", err)
 	}
-	fmt.Println("[+] 重定向成功,开始认证")
-
-	err = portal.GetChallenge(cfg)
-	if err != nil {
-		fmt.Println("[-] get_challenge获取token失败: ", err)
-		return
+	fmt.Println("[+] 已发现认证门户")
+	if err := portal.GetChallenge(cfg); err != nil {
+		return fmt.Errorf("获取 challenge 失败: %w", err)
 	}
-
-	fmt.Println("[+] token获取成功")
-	fmt.Println("token:", cfg.Token)
-
-	err = portal.Auth(cfg)
-	if err != nil {
-		fmt.Println("[-] 认证失败")
-		return
+	if err := portal.Auth(cfg); err != nil {
+		return fmt.Errorf("认证失败: %w", err)
 	}
-	fmt.Println("[+] 认证成功")
+	fmt.Println("[+] 认证流程完成（认证服务器返回 ok）")
+	return nil
 }
